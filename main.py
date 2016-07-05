@@ -5,6 +5,8 @@ import os
 import cPickle
 import re
 
+from process import Process
+
 server = "irc.freenode.org"       #settings
 channel = "#larufpb"
 
@@ -42,8 +44,12 @@ while 1:    #puts it in a loop
 
     if m != None:
         user = m.group(1)
-        msg = m.group(2)
+        msg = m.group(2).strip()
 
         if user not in admins:
             print "User: %s not authorized" % user
             continue
+
+        print "Command: %s" % msg
+        cmd = Process(msg, "output.txt")
+        cmd.start()
