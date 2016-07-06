@@ -1,55 +1,47 @@
 #!/usr/bin/python
-import socket
+
+import signal
 import sys
-import os
-import cPickle
-import re
+import time
+import json
 
-from process import Process
+from node import Node
+from interfaces.telegram import Telegram
 
-server = "irc.freenode.org"       #settings
-channel = "#larufpb"
+interface = None
+nodes = []
+conf = {}
 
-admins = ["gustavokatel"]
+def quit(signum, frame):
+    print 'quit'
+    interface.stop()
 
-admins = cPickle.load(open('man', 'rb'))
-cPickle.dump(admins, open('man', 'wb'))
+    sys.exit(0)
 
-f = open( os.path.join(os.path.dirname(os.path.realpath(__file__)), "client") )
+if __name__ == '__main__':
+    signal.signal(signal.SIGINT, quit)
+    signal.signal(signal.SIGTERM, quit)
 
-lines = f.readlines()
+    nodes = []
 
-botnick = "larufpb_botname"
-if len(lines) > 0:
-    botnick = lines[0].replace("\r", "").replace("\n", "")
+    conf_file = open('octopus.conf')
+    conf = json.load(conf_file)
 
-msg_regex = r":(.*)!.* \#larufpb :(.*)"
+    for data in conf["nodes"]:
+        node = Node(
+            data["name"],
+            data["username"],
+            data["hostname"],
+            data["port"]
+        )
+        nodes.append(node)
 
-irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #defines the socket
-print "connecting to:"+server
-irc.connect((server, 6667))                                                         #connects to the server
-irc.send("USER "+ botnick +" "+ botnick +" "+ botnick +" :LAR-UFPB Slave Testing!\n") #user authentication
-irc.send("NICK "+ botnick +"\n")                            #sets nick
-irc.send("PRIVMSG nickserv :iNOOPE\r\n")    #auth
-irc.send("JOIN "+ channel +"\n")        #join the chan
+    # cli = node.Node("gustavokatel", "127.0.0.1", 22)
+    # time.sleep(5)
+    # cli.runCommand("touch test.txt && ls")
 
-while 1:    #puts it in a loop
-    text=irc.recv(2040)  #receive the text
+    interface = Telegram(nodes, conf)
+    interface.start()
 
-    if text.find('PING') != -1:                          #check if 'PING' is found
-        irc.send('PONG ' + text.split() [1] + '\r\n') #returnes 'PONG' back to the server (prevents pinging out!)
-        continue
-
-    m = re.search(msg_regex, text)
-
-    if m != None:
-        user = m.group(1)
-        msg = m.group(2).strip()
-
-        if user not in admins:
-            print "User: %s not authorized" % user
-            continue
-
-        print "Command: %s" % msg
-        cmd = Process(msg, "output.txt")
-        cmd.start()
+    while True:
+        time.sleep(10)
