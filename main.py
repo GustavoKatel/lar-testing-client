@@ -4,6 +4,7 @@ import signal
 import sys
 import time
 import json
+import threading
 
 from node import Node
 from interfaces.telegram import Telegram
@@ -36,6 +37,7 @@ if __name__ == '__main__':
             conf["auth"]["private_key"]
         )
         nodes.append(node)
+        threading.Thread(target = node.connect).start()
 
     # cli = node.Node("gustavokatel", "127.0.0.1", 22)
     # time.sleep(5)
