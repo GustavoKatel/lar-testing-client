@@ -178,7 +178,12 @@ class Telegram(threading.Thread):
                 m = re.match(r'/auth ([a-zA-Z0-9_]+)', text)
                 username = m.group(1)
                 self.conf['telegram']['admins'].append(username)
-                json.dump(self.conf, '../octopus.conf')
+
+                js = json.dumps(self.conf, ensure_ascii=False, sort_keys=True, indent=4)
+                with open('octopus.conf', 'w') as f:
+                    f.write(js+'\n')
+
+                self.bot.sendMessage(chat_id, "New admin added: %s -.-.-00-.-.-\n\n" % username)
 
             else:
                 self.bot.sendMessage(chat_id, self.helpText())
