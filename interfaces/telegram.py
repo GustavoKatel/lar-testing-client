@@ -3,6 +3,9 @@ import time
 import threading
 import re
 
+from node import Status as NodeStatus
+from node import Node
+
 class Telegram(threading.Thread):
 
     def __init__(self, nodes, conf):
@@ -37,6 +40,7 @@ class Telegram(threading.Thread):
                         res += "hostname: %s\n" % node.hostname
                         res += "username: %s\n" % node.username
                         res += "port: %s\n" % node.port
+                        res += "status: %s\n" % NodeStatus.toStr(node.status)
                         res += "last command: %s\n" % node.lastCommand
                         res += "current command: %s\n" % node.currentCommand
                         res += "\nNode info ends -.-.-00-.-.-\n"
@@ -59,6 +63,23 @@ class Telegram(threading.Thread):
 
                 for node in current_nodes:
                     node.runCommand(cmd)
+
+            # /connect [LIST_OF_NAMES|*]
+            elif re.match(r'/connect \[([a-zA-Z0-9_,]+|\*)\] (.+)', text):
+                m = re.match(r'/connect \[([a-zA-Z0-9_,]+|\*)\] (.+)', text)
+                names = m.group(1)
+
+                current_nodes = []
+                if names == "*":
+                    current_nodes = self.nodes
+                else:
+                    lnames = names.split(',')
+                    for node in self.nodes:
+                        if node.name in lnames:
+                            current_nodes.append(node)
+
+                for node in current_nodes:
+                    node.connect()
 
             else:
                 self.bot.sendMessage(chat_id, self.helpText())

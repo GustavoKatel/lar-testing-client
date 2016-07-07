@@ -32,7 +32,8 @@ if __name__ == '__main__':
             data["name"],
             data["username"],
             data["hostname"],
-            data["port"]
+            data["port"],
+            conf["auth"]["private_key"]
         )
         nodes.append(node)
 
