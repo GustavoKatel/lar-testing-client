@@ -34,7 +34,7 @@ class Node:
         self.pkey = pkey
 
         self.ssh = None
-        self.connect()
+        # self.connect()
 
         self.status = Status.idle
         self.currentCommand = ""
@@ -111,7 +111,8 @@ class Node:
                 self.hostname,
                 username=self.username,
                 key_filename=self.pkey,
-                port=int(self.port)
+                port=int(self.port),
+                timeout=10
             )
 
             self.status = Status.idle
