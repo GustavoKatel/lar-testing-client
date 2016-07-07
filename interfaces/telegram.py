@@ -3,6 +3,7 @@ import time
 import threading
 import re
 import os
+import json
 
 from node import Status as NodeStatus
 from node import Node
@@ -154,8 +155,8 @@ class Telegram(threading.Thread):
                     self.bot.sendDocument(chat_id, f, "%s - %s" % (node.name, dump_type))
 
             # /download [LIST_OF_NAMES|*] filename
-            elif re.match(r'/download ([a-zA-Z0-9_,]+|\*) (.*)', text):
-                m = re.match(r'/download ([a-zA-Z0-9_,]+|\*) (.*)', text)
+            elif re.match(r'/download ([a-zA-Z0-9_,]+|\*) (.+)', text):
+                m = re.match(r'/download ([a-zA-Z0-9_,]+|\*) (.+)', text)
                 names = m.group(1)
                 filename = m.group(2)
 
@@ -172,6 +173,12 @@ class Telegram(threading.Thread):
                     f = node.getFile(filename)
                     self.bot.sendDocument(chat_id, f, "%s - %s" % (node.name, filename))
 
+            # /auth USERNAME
+            elif re.match(r'/auth ([a-zA-Z0-9_]+)', text):
+                m = re.match(r'/auth ([a-zA-Z0-9_]+)', text)
+                username = m.group(1)
+                self.conf['telegram']['admins'].append(username)
+                json.dump(self.conf, '../octopus.conf')
 
             else:
                 self.bot.sendMessage(chat_id, self.helpText())
