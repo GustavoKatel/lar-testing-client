@@ -6,6 +6,7 @@ import string
 import random
 import errno
 import re
+import time
 
 import paramiko
 
@@ -48,15 +49,15 @@ class Node:
             os.makedirs(cdir+"/nodes")
 
         self.fstdout = open(cdir+"/nodes/"+self.name+".out", "w")
-        self.fstdout.write('-.-.-00-.-.-\n')
+        self.fstdout.write(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+'\n')
         self.fstdout.flush()
 
         self.fstderr = open(cdir+"/nodes/"+self.name+".err", "w")
-        self.fstderr.write('-.-.-00-.-.-\n')
+        self.fstderr.write(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+'\n')
         self.fstderr.flush()
 
         self.fnodeerr = open(cdir+"/nodes/"+self.name+".nodeerr", "w")
-        self.fnodeerr.write('-.-.-00-.-.-\n')
+        self.fnodeerr.write(time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())+'\n')
         self.fnodeerr.flush()
 
 
@@ -94,13 +95,13 @@ class Node:
             self.fstdout.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
             for line in stdout:
                 self.fstdout.write(line)
-            self.fstdout.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n')
+            self.fstdout.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n\n')
             self.fstdout.flush()
 
             self.fstderr.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
             for line in stderr:
                 self.fstderr.write(line)
-            self.fstderr.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n')
+            self.fstderr.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n\n')
             self.fstderr.flush()
 
         except:

@@ -87,6 +87,7 @@ class Telegram(threading.Thread):
                      dict(text='Read logs', callback_data='/logsNode')],
                      [dict(text='Download file', callback_data='/downloadNode'),
                      dict(text='Kill process', callback_data='/killNode')],
+                     [dict(text='Help', callback_data='/help')],
                  ])
 
             self.bot.sendMessage(chat_id, '>>> OCToPUS <<<<', reply_markup=markup)
@@ -162,9 +163,14 @@ class Telegram(threading.Thread):
         elif re.match(r'/info$', text):
             self.bot.sendChatAction(chat_id, "typing")
             res = "Nodes list starts -.-.-00-.-.-\n\n"
+            processTotal = 0
             for i,node in enumerate(self.nodes):
                 node.updateProcessList()
+                processTotal += node.processCount
                 res += str(i) + "- " + str(node) + "\n"
+
+            res += "\nTotal of %s process(es) runnning\n" % processTotal
+
             res += "\nNodes list ends -.-.-00-.-.-\n"
             self.bot.sendMessage(chat_id, res)
 
@@ -199,6 +205,7 @@ class Telegram(threading.Thread):
             current_nodes = self.filter_nodes(names)
             for node in current_nodes:
                 node.runCommand(cmd)
+            self.bot.sendMessage(chat_id, "-.-.-00-.-.-")
 
         # /connect [LIST_OF_NAMES|*]
         elif re.match(r'/connect ([a-zA-Z0-9_,]+|\*)', text):
@@ -210,6 +217,7 @@ class Telegram(threading.Thread):
                 self.bot.sendChatAction(chat_id, "typing")
                 self.bot.sendMessage(chat_id, "Connecting to: %s -.-.-00-.-.-\n\n" % name)
                 node.connect()
+            self.bot.sendMessage(chat_id, "-.-.-00-.-.-")
 
         # /logs [LIST_OF_NAMES|*]
         elif re.match(r'/logs ([a-zA-Z0-9_,]+|\*)', text):
@@ -279,6 +287,7 @@ class Telegram(threading.Thread):
             current_nodes = self.filter_nodes(names)
             for node in current_nodes:
                 node.runCommand("pkill -f \"OCTOPUS\"")
+                self.bot.sendMessage(chat_id, "-.-.-00-.-.-")
 
         # /killall [LIST_OF_NAMES|*] CMD_PATTERN
         elif re.match(r'/killall ([a-zA-Z0-9_,]+|\*) (.+)', text):
@@ -289,6 +298,7 @@ class Telegram(threading.Thread):
             current_nodes = self.filter_nodes(names)
             for node in current_nodes:
                 node.runCommand("pkill -f %s" % pattern)
+                self.bot.sendMessage(chat_id, "-.-.-00-.-.-")
 
         # /help
         elif re.match(r'/help$', text):
@@ -323,13 +333,22 @@ class Telegram(threading.Thread):
 
 Commands:
 /info: Returns the list of nodes in the server
+
 /info NAME: Returns information about a specif node
+
 /exec LIST_OF_NAMES|* CMD: Execute the command CMD. Eg.: /exec [s1,s2] ls -lah
+
 /connect LIST_OF_NAMES|*: Force a connection to the nodes in LIST_OF_NAMES
+
 /logs LIST_OF_NAMES|*: Read the stdout from the node
+
 /dump LIST_OF_NAMES|* stdout|stderr: Download the stdout or the stderr from a node
+
 /download LIST_OF_NAMES|* FILENAME: Download FILENAME from a node
+
 /auth USERNAME: Add USERNAME to the admin group
+
 /killall LIST_OF_NAMES|*: Kill all processes created by the OCToPUS
+
 /killall LIST_OF_NAMES|* PATTERN: Kill all processes that contains PATTERN in the command name (BE CAREFUL! THIS CAN KILL PROCESSES THAT WEREN'T CREATED BY OCToPUS)
 """
