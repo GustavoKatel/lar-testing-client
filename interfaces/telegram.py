@@ -59,13 +59,18 @@ class Telegram(threading.Thread):
                 name = m.group(1)
                 for node in self.nodes:
                     if node.name == name:
+                        node.updateProcessList()
                         res = "Node info: %s -.-.-00-.-.-\n\n" % name
                         res += "hostname: %s\n" % node.hostname
                         res += "username: %s\n" % node.username
                         res += "port: %s\n" % node.port
                         res += "status: %s\n" % NodeStatus.toStr(node.status)
                         res += "last command: %s\n" % node.lastCommand
-                        res += "current command: %s\n" % node.currentCommand
+                        res += "Process count: %s\n" % node.processCount
+                        res += "Process List:\n"
+                        for p in node.processList:
+                            res += "%s\n" % p
+                        res += "\n"
                         res += "\nNode info ends -.-.-00-.-.-\n"
                         self.bot.sendMessage(chat_id, res)
 
@@ -185,6 +190,41 @@ class Telegram(threading.Thread):
 
                 self.bot.sendMessage(chat_id, "New admin added: %s -.-.-00-.-.-\n\n" % username)
 
+            # /killall [LIST_OF_NAMES|*]
+            elif re.match(r'/killall ([a-zA-Z0-9_,]+|\*)', text):
+                m = re.match(r'/killall ([a-zA-Z0-9_,]+|\*)', text)
+                names = m.group(1)
+
+                current_nodes = []
+                if names == "*":
+                    current_nodes = self.nodes
+                else:
+                    lnames = names.split(',')
+                    for node in self.nodes:
+                        if node.name in lnames:
+                            current_nodes.append(node)
+
+                for node in current_nodes:
+                    node.runCommand("pkill -f \"OCTOPUS\"")
+
+            # /killall [LIST_OF_NAMES|*] CMD_PATTERN
+            elif re.match(r'/killall ([a-zA-Z0-9_,]+|\*) (.+)', text):
+                m = re.match(r'/killall ([a-zA-Z0-9_,]+|\*) (.+)', text)
+                names = m.group(1)
+                pattern = m.group(2)
+
+                current_nodes = []
+                if names == "*":
+                    current_nodes = self.nodes
+                else:
+                    lnames = names.split(',')
+                    for node in self.nodes:
+                        if node.name in lnames:
+                            current_nodes.append(node)
+
+                for node in current_nodes:
+                    node.runCommand("pkill -f %s" % pattern)
+
             else:
                 self.bot.sendMessage(chat_id, self.helpText())
 
@@ -216,4 +256,7 @@ Commands:
 /logs LIST_OF_NAMES|*: Read the stdout from the node
 /dump LIST_OF_NAMES|* stdout|stderr: Download the stdout or the stderr from a node
 /download LIST_OF_NAMES|* FILENAME: Download FILENAME from a node
+/auth USERNAME: Add USERNAME to the admin group
+/killall LIST_OF_NAMES|*: Kill all processes created by the OCToPUS
+/killall LIST_OF_NAMES|* PATTERN: Kill all processes that contains PATTERN in the command name (BE CAREFUL! THIS CAN KILL PROCESSES THAT WEREN'T CREATED BY OCToPUS)
 """

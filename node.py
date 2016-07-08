@@ -5,6 +5,7 @@ import thread
 import string
 import random
 import errno
+import re
 
 import paramiko
 
@@ -37,8 +38,10 @@ class Node:
         # self.connect()
 
         self.status = Status.idle
-        self.currentCommand = ""
         self.lastCommand = ""
+
+        self.processCount = 0
+        self.processList = []
 
         cdir = os.path.dirname(os.path.realpath(__file__))
         if not os.path.exists(cdir+"/nodes"):
@@ -48,13 +51,12 @@ class Node:
         self.fstderr = open(cdir+"/nodes/"+self.name+".err", "w")
         self.fnodeerr = open(cdir+"/nodes/"+self.name+".nodeerr", "w")
 
-        self.currentStdin = None
 
     def close(self):
-        print "closing connection"
+        print "[%s] closing connection" % self.name
         self.ssh.close()
         self.status = Status.closed
-        print "closed"
+        print "[%s] closed" % self.name
 
     # def kill(self):
         # if self.status = Status.running and self.currentStdin:
@@ -76,14 +78,9 @@ class Node:
             print "running..."
             self.currentCommand = cmd
 
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
-
-            self.currentStdin = stdin
-
-            print "done..."
+            stdin, stdout, stderr = self.ssh.exec_command("bash -c \"%s #OCTOPUS\"" % cmd)
 
             self.lastCommand = cmd
-            self.currentCommand = ""
 
             self.status = Status.idle
             self.fstdout.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
@@ -135,8 +132,32 @@ class Node:
         sftp = self.ssh.open_sftp()
         sftp.put(filename, dest_name)
 
+    def updateProcessList(self):
+        psCMD = "ps axo pid,cmd | grep \#OCTOPUS | grep -v grep"
+
+        if self.status == Status.closed:
+            return
+
+        try:
+            self.processCount = 0
+            self.processList = []
+
+            stdin, stdout, stderr = self.ssh.exec_command(psCMD)
+
+            for line in stdout:
+                self.processCount += 1
+
+                if re.match(r'([0-9]+) bash -c (.*) #OCTOPUS', line.strip()):
+                    m = re.match(r'([0-9]+) bash -c (.*) #OCTOPUS', line.strip())
+                    self.processList.append("%s %s" % (m.group(1), m.group(2)))
+                elif not line.strip() == '':
+                    self.processList.append(line.strip())
+
+        except:
+            self.close()
+
     def __str__(self):
         return self.__unicode__()
 
     def __unicode__(self):
-        return "%s (%s)" % (self.name, Status.toStr(self.status))
+        return "%s (%s) #%s" % (self.name, Status.toStr(self.status), self.processCount)
