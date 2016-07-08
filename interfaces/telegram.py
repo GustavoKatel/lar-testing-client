@@ -52,6 +52,8 @@ class Telegram(threading.Thread):
         if content_type == 'document':
             doc = msg['document']
             cdir = os.path.dirname(os.path.realpath(__file__))
+            if not os.path.exists(cdir+"/../data"):
+                os.makedirs(cdir+"/../data")
             print "Downloading... " + doc['file_name']
             fd = open(cdir+'/../data/'+doc['file_name'], 'w')
             self.bot.download_file(doc['file_id'], fd)
