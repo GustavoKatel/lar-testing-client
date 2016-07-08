@@ -2,28 +2,111 @@
 
 import os
 import thread
+import threading
 import string
 import random
 import errno
+import time
 
 import paramiko
 
 class Status:
     @staticmethod
     def toStr(st):
-        if st == 0:
+        if st == Status.idle:
             return "IDLE"
-        elif st == 1:
+        elif st == Status.running:
             return "RUNNING"
-        elif st == 2:
-            return "CLOSED"
-        elif st == 3:
+        elif st == Status.exited:
+            return "EXITED"
+        elif st == Status.connecting:
             return "CONNECTING"
+        elif st == Status.closed:
+            return "CLOSED"
 
     idle = 0
     running = 1
-    closed = 2
+    exited = 2
     connecting = 3
+    closed = 4
+
+class Process(threading.Thread):
+    def __init__(self, id, ssh, cmd, fstdout, fstderr, fnodeerr):
+        threading.Thread.__init__(self)
+
+        self.id = id
+
+        self.ssh = ssh
+        self.cmd = cmd
+
+        self.status = Status.idle
+
+        self.fstdout = fstdout
+        self.fstderr = fstderr
+        self.fnodeerr = fnodeerr
+
+        self.stdin = None
+        self.stdout = None
+        self.stderr = None
+
+        self.returnCode = 0
+
+        self.running = False
+
+        self.pid = -1
+
+    def stop(self):
+        print "closing"
+        self.running = False
+
+    def updatePid(self):
+        try:
+            stdin, stdout, stderr = self.ssh.exec_command("ps axo pid,cmd | grep OCTOPUS=%s | grep -v grep" % self.id)
+
+            if stdout:
+                for line in stdout:
+                    print "PID: " + line
+            else:
+                self.pid = -1
+
+        except Exception as e:
+            print e
+            self.stop()
+
+    def run(self):
+        try:
+            self.running = True
+            self.status = Status.running
+            print "running..."
+
+            self.stdin, self.stdout, self.stderr = self.ssh.exec_command('bash -c "%s #OCTOPUS=%s"' % (self.cmd, self.id) )
+
+            self.updatePid()
+
+            self.fstdout.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % self.cmd)
+            for line in self.stdout:
+                self.fstdout.write(line)
+            self.fstdout.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n')
+            self.fstdout.flush()
+
+
+            self.fstderr.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % self.cmd)
+            for line in self.stderr:
+                self.fstderr.write(line)
+            self.fstderr.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n')
+            self.fstderr.flush()
+
+            self.status = Status.exited
+
+        except Exception as e:
+            print e
+            self.stop()
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return "%s (%s) (status: %s) - %s" % (self.id, self.pid, Status.toStr(self.status), self.cmd)
 
 class Node:
     def __init__(self, name, username, hostname, port, pkey):
@@ -36,9 +119,8 @@ class Node:
         self.ssh = None
         # self.connect()
 
-        self.status = Status.idle
-        self.currentCommand = ""
-        self.lastCommand = ""
+        self.currentProcessId = 0
+        self.processMap = {}
 
         cdir = os.path.dirname(os.path.realpath(__file__))
         if not os.path.exists(cdir+"/nodes"):
@@ -48,13 +130,14 @@ class Node:
         self.fstderr = open(cdir+"/nodes/"+self.name+".err", "w")
         self.fnodeerr = open(cdir+"/nodes/"+self.name+".nodeerr", "w")
 
-        self.currentStdin = None
+        self.status = Status.closed
 
     def close(self):
         print "closing connection"
         self.ssh.close()
         self.status = Status.closed
         print "closed"
+        # TODO kill processes
 
     # def kill(self):
         # if self.status = Status.running and self.currentStdin:
@@ -65,41 +148,18 @@ class Node:
         if self.status == Status.running:
             return False
 
-        thread.start_new_thread( self._runCommandAsync, (cmd,) )
+        self.currentProcessId+=1
+        process = Process(self.currentProcessId,
+            self.ssh,
+            cmd,
+            self.fstdout,
+            self.fstderr,
+            self.fnodeerr
+            )
+        process.start()
 
-    def _runCommandAsync(self, cmd):
-        if self.status == Status.closed:
-            return
-
-        try:
-            self.status = Status.running
-            print "running..."
-            self.currentCommand = cmd
-
-            stdin, stdout, stderr = self.ssh.exec_command(cmd)
-
-            self.currentStdin = stdin
-
-            print "done..."
-
-            self.lastCommand = cmd
-            self.currentCommand = ""
-
-            self.status = Status.idle
-            self.fstdout.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
-            for line in stdout:
-                self.fstdout.write(line)
-            self.fstdout.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n')
-            self.fstdout.flush()
-
-            self.fstderr.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
-            for line in stderr:
-                self.fstderr.write(line)
-            self.fstderr.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n')
-            self.fstderr.flush()
-
-        except:
-            self.close()
+        self.processMap[self.currentProcessId] = process
+        print self.processMap[1]
 
     def connect(self):
         self.ssh = paramiko.SSHClient()
