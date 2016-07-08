@@ -17,6 +17,18 @@ class Telegram(threading.Thread):
         self.nodes = nodes
         self.conf = conf
 
+    def filter_nodes(self, names):
+        current_nodes = []
+        if names == "*":
+            current_nodes = self.nodes
+        else:
+            lnames = names.split(',')
+            for node in self.nodes:
+                if node.name in lnames:
+                    current_nodes.append(node)
+
+        return current_nodes
+
     def handle(self, msg):
         content_type, chat_type, chat_id = telepot.glance(msg)
         print(content_type, chat_type, chat_id)
@@ -47,8 +59,10 @@ class Telegram(threading.Thread):
 
             # /info
             if re.match(r'/info$', text):
+                self.bot.sendChatAction(chat_id, "typing")
                 res = "Nodes list starts -.-.-00-.-.-\n\n"
                 for i,node in enumerate(self.nodes):
+                    node.updateProcessList()
                     res += str(i) + "- " + str(node) + "\n"
                 res += "\nNodes list ends -.-.-00-.-.-\n"
                 self.bot.sendMessage(chat_id, res)
@@ -59,6 +73,7 @@ class Telegram(threading.Thread):
                 name = m.group(1)
                 for node in self.nodes:
                     if node.name == name:
+                        self.bot.sendChatAction(chat_id, "typing")
                         node.updateProcessList()
                         res = "Node info: %s -.-.-00-.-.-\n\n" % name
                         res += "hostname: %s\n" % node.hostname
@@ -80,15 +95,7 @@ class Telegram(threading.Thread):
                 names = m.group(1)
                 cmd = m.group(2)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
                     node.runCommand(cmd)
 
@@ -97,16 +104,9 @@ class Telegram(threading.Thread):
                 m = re.match(r'/connect ([a-zA-Z0-9_,]+|\*)', text)
                 names = m.group(1)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
+                    self.bot.sendChatAction(chat_id, "typing")
                     self.bot.sendMessage(chat_id, "Connecting to: %s -.-.-00-.-.-\n\n" % name)
                     node.connect()
 
@@ -115,19 +115,12 @@ class Telegram(threading.Thread):
                 m = re.match(r'/logs ([a-zA-Z0-9_,]+|\*)', text)
                 names = m.group(1)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
                     cdir = os.path.dirname(os.path.realpath(__file__))
                     f = open(cdir+"/../nodes/"+node.name+".out", "r")
 
+                    self.bot.sendChatAction(chat_id, "typing")
                     res = "Reading logs: %s -.-.-00-.-.-\n\n" % node.name
                     res += ''.join(f.readlines())
                     res += "Reading logs ends: %s -.-.-00-.-.-\n\n" % node.name
@@ -141,15 +134,7 @@ class Telegram(threading.Thread):
                 names = m.group(1)
                 dump_type = m.group(2)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
                     cdir = os.path.dirname(os.path.realpath(__file__))
                     if dump_type == "stdout":
@@ -157,6 +142,7 @@ class Telegram(threading.Thread):
                     else:
                         f = open(cdir+"/../nodes/"+node.name+".err", "r")
 
+                    self.bot.sendChatAction(chat_id, "upload_document")
                     self.bot.sendDocument(chat_id, f, "%s - %s" % (node.name, dump_type))
 
             # /download [LIST_OF_NAMES|*] filename
@@ -165,17 +151,10 @@ class Telegram(threading.Thread):
                 names = m.group(1)
                 filename = m.group(2)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
                     f = node.getFile(filename)
+                    self.bot.sendChatAction(chat_id, "upload_document")
                     self.bot.sendDocument(chat_id, f, "%s - %s" % (node.name, filename))
 
             # /auth USERNAME
@@ -188,6 +167,7 @@ class Telegram(threading.Thread):
                 with open('octopus.conf', 'w') as f:
                     f.write(js+'\n')
 
+                self.bot.sendChatAction(chat_id, "typing")
                 self.bot.sendMessage(chat_id, "New admin added: %s -.-.-00-.-.-\n\n" % username)
 
             # /killall [LIST_OF_NAMES|*]
@@ -195,15 +175,7 @@ class Telegram(threading.Thread):
                 m = re.match(r'/killall ([a-zA-Z0-9_,]+|\*)', text)
                 names = m.group(1)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
                     node.runCommand("pkill -f \"OCTOPUS\"")
 
@@ -213,15 +185,7 @@ class Telegram(threading.Thread):
                 names = m.group(1)
                 pattern = m.group(2)
 
-                current_nodes = []
-                if names == "*":
-                    current_nodes = self.nodes
-                else:
-                    lnames = names.split(',')
-                    for node in self.nodes:
-                        if node.name in lnames:
-                            current_nodes.append(node)
-
+                current_nodes = self.filter_nodes(names)
                 for node in current_nodes:
                     node.runCommand("pkill -f %s" % pattern)
 
