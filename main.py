@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     nodes = []
 
-    conf_file = open('octopus.conf')
+    conf_file = open('/opt/octopus/octopus/conf/octopus.conf')
     conf = json.load(conf_file)
 
     for data in conf["nodes"]:

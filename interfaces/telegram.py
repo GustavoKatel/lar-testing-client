@@ -273,7 +273,7 @@ class Telegram(threading.Thread):
             self.conf['telegram']['admins'].append(username)
 
             js = json.dumps(self.conf, ensure_ascii=False, sort_keys=True, indent=4)
-            with open('octopus.conf', 'w') as f:
+            with open('/opt/octopus/conf/octopus.conf', 'w') as f:
                 f.write(js+'\n')
 
             self.bot.sendChatAction(chat_id, "typing")
