@@ -48,8 +48,16 @@ class Node:
             os.makedirs(cdir+"/nodes")
 
         self.fstdout = open(cdir+"/nodes/"+self.name+".out", "w")
+        self.fstdout.write('-.-.-00-.-.-\n')
+        self.fstdout.flush()
+
         self.fstderr = open(cdir+"/nodes/"+self.name+".err", "w")
+        self.fstderr.write('-.-.-00-.-.-\n')
+        self.fstderr.flush()
+
         self.fnodeerr = open(cdir+"/nodes/"+self.name+".nodeerr", "w")
+        self.fnodeerr.write('-.-.-00-.-.-\n')
+        self.fnodeerr.flush()
 
 
     def close(self):
