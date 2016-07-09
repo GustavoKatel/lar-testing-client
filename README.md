@@ -6,14 +6,12 @@
 
 * Dependencies
 
-      apt-get install python-dev libssl-dev
-
-
-      pip install telepot paramiko
+            apt-get install python-dev libssl-dev
+            pip install telepot paramiko
 
 * Get the code
 
-      git clone https://github.com/GustavoKatel/octopus.git
+            git clone https://github.com/GustavoKatel/octopus.git
 
 ### 2 - Create a Telegram bot
 
