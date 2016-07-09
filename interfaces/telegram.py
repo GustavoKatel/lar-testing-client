@@ -33,7 +33,7 @@ class Telegram(threading.Thread):
             """)
             return
 
-        self.interpreter(from_id, data)
+        self.interpreter(msg['message']['chat']['id'], data)
 
     def handle(self, msg):
         content_type, chat_type, chat_id = telepot.glance(msg)
