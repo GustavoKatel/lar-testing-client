@@ -89,22 +89,25 @@ class Node:
 
             stdin, stdout, stderr = self.ssh.exec_command("bash -c \"%s #OCTOPUS\"" % cmd)
 
+
             self.lastCommand = cmd
 
             self.status = Status.idle
             self.fstdout.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
             for line in stdout:
-                self.fstdout.write(line)
+                self.fstdout.write(line.encode('utf-8').strip())
             self.fstdout.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n\n')
             self.fstdout.flush()
 
+
             self.fstderr.write('-.-.-00-.-.- %s -.-.-00-.-.-\n' % cmd)
             for line in stderr:
-                self.fstderr.write(line)
+                self.fstderr.write(line.encode('utf-8').strip())
             self.fstderr.write('-.-.-00-.-.--.-.-00-.-.--.-.-00-.-.-\n\n')
             self.fstderr.flush()
 
-        except:
+        except Exception as e:
+            print e
             self.close()
 
     def connect(self):

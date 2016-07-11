@@ -8,9 +8,7 @@ RUN pip install telepot paramiko
 
 RUN mkdir -p /opt/octopus && \
 cd /opt/octopus && \
-CACHE=2 git clone https://github.com/GustavoKatel/octopus.git
-
-RUN mkdir -p /opt/octopus/conf
+CACHE=4 git clone https://github.com/GustavoKatel/octopus.git
 
 VOLUME /opt/octopus/octopus/conf
 

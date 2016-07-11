@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import signal
 import sys
 import time
@@ -25,7 +26,8 @@ if __name__ == '__main__':
 
     nodes = []
 
-    conf_file = open('/opt/octopus/octopus/conf/octopus.conf')
+    cdir = os.path.dirname(os.path.realpath(__file__))
+    conf_file = open(cdir+'/conf/octopus.conf')
     conf = json.load(conf_file)
 
     for data in conf["nodes"]:
